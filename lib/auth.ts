@@ -1,11 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { readAccounts, type Account, type AccountsProblem } from "./accounts-env";
 
 export const COOKIE = "ep_admin";
 const MAX_AGE = 60 * 60 * 12; // 12 ore
 
 export interface AdminUser { username: string; displayName: string }
-interface Account extends AdminUser { password: string }
 
 function secret(): string {
   const s = process.env.SESSION_SECRET;
@@ -15,12 +15,10 @@ function secret(): string {
 }
 
 export function accounts(): Account[] {
-  try {
-    const list = JSON.parse(process.env.ADMIN_USERS ?? "[]") as Partial<Account>[];
-    return list
-      .filter((a): a is Account => Boolean(a.username && a.password))
-      .map((a) => ({ username: a.username, password: a.password, displayName: a.displayName || a.username }));
-  } catch { return []; }
+  return readAccounts(process.env.ADMIN_USERS).list;
+}
+export function accountsProblem(): AccountsProblem | null {
+  return readAccounts(process.env.ADMIN_USERS).problem;
 }
 
 const sign = (payload: string) => createHmac("sha256", secret()).update(payload).digest("base64url");
